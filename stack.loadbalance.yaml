@@ -1,4 +1,4 @@
-version: '3.7'
+version: '3.3'
 # load balancer with multiple servers
 services:
     loadbalancer:
