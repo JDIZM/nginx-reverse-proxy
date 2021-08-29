@@ -47,7 +47,7 @@ A request made to `http://localhost/backend/1` will translate to `/1`
 
 ## Load Balancing
 
-Spin up the containers and visit `http://localhost/` in an icognito browser to test the load balancing between servers. It should round robin between servers and show whether you are on server A or server B.
+Spin up the containers and visit `http://localhost/` in an incognito browser to test the load balancing between servers. It should round robin between servers and show whether you are on server A or server B.
 
 You can access each server individually at their location urls
 - http://localhost/servera/
