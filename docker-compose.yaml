@@ -1,5 +1,5 @@
 version: '3.7'
-# standard reverse proxy setup
+# simple reverse proxy setup
 services:
     rproxy: 
         build:
