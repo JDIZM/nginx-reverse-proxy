@@ -1,4 +1,4 @@
-# nginx
+# nginx reverse proxy
 
 - reverse proxy
 - load balancing
