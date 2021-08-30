@@ -6,7 +6,7 @@
 
 This is an example server configuration to see how the reverse proxy and load balancing works.
 
-Docker Swarm comes with it's own load balancing between nodes, the Nginx will load
+Docker Swarm comes with it's own load balancing between nodes.
 
 https://docs.docker.com/engine/swarm/key-concepts/#load-balancing
 
