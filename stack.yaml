@@ -10,18 +10,20 @@ services:
             # - 443:443
         restart: always
         volumes:
-            - ./logs/lb:/var/log/nginx
+            - logs:/var/log/nginx
     servera:
         image: jdizm/nginx-reverse-proxy:servera
         build: 
             context: ./servers/a
         restart: always
         volumes:
-            - ./logs/a:/var/log/nginx
+            - logs:/var/log/nginx
     serverb:
         image: jdizm/nginx-reverse-proxy:serverb
         build:
             context: ./servers/b
         restart: always
         volumes:
-            - ./logs/b:/var/log/nginx
+            - logs:/var/log/nginx
+volumes:
+    logs: {}
