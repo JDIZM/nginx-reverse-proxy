@@ -6,17 +6,8 @@ services:
             context: ./servers/rproxy
         ports: 
             - 80:80
-            # - 443:443
         restart: always
         volumes:
             - logs:/var/log/nginx
-    # config for ssl
-    #         - ./data/certbot/conf:/etc/letsencrypt
-    #         - ./data/certbot/www:/var/www/certbot
-    # certbot:
-    #     image: certbot/certbot
-    #     volumes: 
-    #         - ./data/certbot/conf:/etc/letsencrypt
-    #         - ./data/certbot/www:/var/www/certbot
 volumes:
     logs: {}
