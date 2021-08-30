@@ -12,6 +12,7 @@ services:
             - logs:/var/log/nginx
     # config for ssl
             - ./certbot/conf:/etc/nginx/ssl
+            - ./certbot/conf:/etc/letsencrypt
             - ./certbot/www:/var/www/certbot
     certbot:
         image: certbot/certbot:latest
@@ -19,6 +20,5 @@ services:
         volumes:
             - ./certbot/conf:/etc/letsencrypt
             - ./certbot/www:/var/www/certbot
-            - ./certbot/logs:/var/log/letsencrypt
 volumes:
     logs: {}

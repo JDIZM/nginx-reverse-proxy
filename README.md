@@ -3,6 +3,7 @@
 - reverse proxy
 - load balancing
 - logging to persistent volume 
+- ssl with letsencrypt/certbot
 
 This is an example server configuration to see how the reverse proxy and load balancing works.
 
@@ -97,6 +98,28 @@ The official nginx image creates a symbolic link from /var/log/nginx/access.log 
 To save the logs to a volume there is an additional log being created in the nginx.conf files.
 
 Now you can `cd /var/log/nginx` and cat the log files to see the contents. The logs should now persist on the volume when containers are removed.
+
+## SSL
+
+It's a little tricky to get ssl working properly. You first need certbot to issue a certificate for the domain, then you need to add the certs to the Nginx config.
+
+Edit the command section of the ssl.yaml to include your email and the domain you want to register.
+```
+command: certonly --webroot --webroot-path=/var/www/certbot --email your-email@domain.com --agree-tos --no-eff-email -d domain.com -d www.domain.com
+```
+
+Set an A record for the domain to point to your server IP address.
+
+Then load nginx with ssl config on the server
+```
+docker-compose -f ssl.yaml up
+```
+
+Let certbot generate certs.
+
+After it generates the certs and saves the files to the host machine you can uncomment the lines that reference the ssl certs in the ssl.conf and spin up the containers again.
+
+- [nginx ssl](https://www.nginx.com/blog/using-free-ssltls-certificates-from-lets-encrypt-with-nginx/)
 
 ## Deploying to docker swarm
 
