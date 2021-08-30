@@ -6,7 +6,7 @@ services:
             context: ./servers/rproxy
         ports: 
             - 80:80
-            - 443:443
+            # - 443:443
         restart: always
         volumes:
             - logs:/var/log/nginx
