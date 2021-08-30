@@ -119,6 +119,16 @@ Let certbot generate certs.
 
 After it generates the certs and saves the files to the host machine you can uncomment the lines that reference the ssl certs in the ssl.conf and spin up the containers again.
 
+```
+# edit the ssl.conf to uncomment the ssl configs and add your domain name
+nano servers/ssl/ssl.conf
+```
+
+spin up the container again and test ssl works!
+```
+docker-compose -f ssl.yaml up
+```
+
 - [nginx ssl](https://www.nginx.com/blog/using-free-ssltls-certificates-from-lets-encrypt-with-nginx/)
 
 ## Deploying to docker swarm
