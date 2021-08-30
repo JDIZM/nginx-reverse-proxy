@@ -1,7 +1,8 @@
 version: '3.3'
 # simple reverse proxy setup
 services:
-    rproxy: 
+    rproxy:
+        image: jdizm/nginx-reverse-proxy:ssl
         build:
             context: ./servers/ssl
         ports: 
