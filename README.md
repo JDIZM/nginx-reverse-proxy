@@ -2,9 +2,15 @@
 
 - reverse proxy
 - load balancing
-- logging
+- logging to persistent volume 
 
-## setup
+This is an example server configuration to see how the reverse proxy and load balancing works.
+
+Docker Swarm comes with it's own load balancing between nodes, the Nginx will load
+
+https://docs.docker.com/engine/swarm/key-concepts/#load-balancing
+
+## Setup
 
 Requires a Docker host.
 
@@ -12,28 +18,28 @@ https://docs.docker.com/get-docker/
 
 Servers are located in their own folder inside `/servers` to keep each config separate.
 
-## commands
+## Commands
 
-### Using docker-compose on a single host.
+### Single host deployment with docker-compose
 
-Use `docker-compose` for local deployment.
 ```
 # simple reverse proxy setup
 docker-compose up --build
 docker-compose down
 
 # load balancer with multiple servers
-docker-compose -f stack.loadbalance.yaml up --build
-docker-compose -f stack.loadbalance.yaml down
+docker-compose -f stack.yaml up --build
+docker-compose -f stack.yaml down
 ```
 Note: --build in the command will force the image to be rebuilt incase you made any changes.
+
 ### With docker swarm and multiple hosts.
 
-Use `docker stack deploy` for deployment to docker swarm.
+The images will be pulled from Docker Hub instead of using a local Dockerfile.
 ```
 # deploy stack
 docker swarm init
-docker stack deploy -c stack.loadbalance.yaml stackname
+docker stack deploy -c stack.yaml stackname
 
 # list stack and services to see them running
 docker service ls
@@ -41,7 +47,7 @@ docker stack ls
 docker stack services stackname
 
 # to update the stack you can run the same command again
-docker stack deploy -c stack.loadbalance.yaml stackname
+docker stack deploy -c stack.yaml stackname
 
 # remove stack
 docker stack rm stackname
@@ -53,7 +59,7 @@ Each server has it's own index.html that's copied when the image is built.
 
 ## Reverse Proxy
 
-You don't need to expose any ports on the docker containers, allow Nginx to route the traffic.
+You don't need to expose any ports on the internal docker containers only the client facing Nginx server needs to expose port 80/443, allow Nginx to route the traffic internally.
 
 Note that we use the upstream group name when specifying the proxy_pass for the reverse proxy location.
 
@@ -73,11 +79,24 @@ You can access each server individually at their location urls
 - http://localhost/servera/
 - http://localhost/serverb/
 
+When using Docker Swarm the load will be distributed across all nodes so you can view the same setup from multiple ip addresses within the swarm and Nginx will load balance between the internal Nginx servers to show you which server is responding.
+
+You can use an external load balancer as well as the routing mesh provided by docker swarm.
+
+https://docs.docker.com/engine/swarm/how-swarm-mode-works/services/#services-tasks-and-containers
+https://docs.docker.com/engine/swarm/key-concepts/#load-balancing
+https://docs.docker.com/engine/swarm/ingress/#using-the-routing-mesh
+https://docs.docker.com/engine/swarm/ingress/#configure-an-external-load-balancer
+
 ## Logging
 
-The logs from Nginx are being written to the /logs folder.
+The logs from Nginx are being written to the /logs folder in the single host reverse proxy setup. This won't work in swarm mode and it's not advised to write to the host volume when using swarm mode.
 
 The official nginx image creates a symbolic link from /var/log/nginx/access.log to /dev/stdout, and creates another symbolic link from /var/log/nginx/error.log to /dev/stderr, overwriting the log files and causing logs to be sent to the relevant special device instead. See the [Dockerfile](https://github.com/nginxinc/docker-nginx/blob/8921999083def7ba43a06fabd5f80e4406651353/mainline/jessie/Dockerfile#L21-L23).
+
+To save the logs to a volume there is an additional log being created in the nginx.conf files.
+
+Now you can `cd /var/log/nginx` and cat the log files to see the contents. The logs should now persist on the volume when containers are removed.
 
 ## Deploying to docker swarm
 
@@ -90,19 +109,20 @@ https://hub.docker.com/r/jdizm/nginx-reverse-proxy
 
 ### Pushing a new image the repository
 
-`docker push jdizm/nginx-reverse-proxy:tagname`
-
+```
+docker push jdizm/nginx-reverse-proxy:tagname
+```
 Each server image is tagged with its own name. 
 
 To build the images again we can run docker-compose and then push them to the repo to update their tags.
 
 an example workflow for updating all the images, then deploying the stack again.
 ```
-docker-compose -f stack.loadbalance.yaml up --build
+docker-compose -f stack.yaml up --build
 docker push jdizm/nginx-reverse-proxy:loadbalancer
 docker push jdizm/nginx-reverse-proxy:servera
 docker push jdizm/nginx-reverse-proxy:serverb
-docker stack deploy -c stack.loadbalance.yaml stackname
+docker stack deploy -c stack.yaml stackname
 ```
 
 ## deploying a docker host with docker machine to digitalocean
@@ -118,14 +138,13 @@ export DOFINGER=<ssh key fingerprint>
 then we can create a new droplet and connect to it
 ```
 # create a new droplet with digitalocean
-docker-machine create --driver digitalocean --digitalocean-access-token $DOTOKEN --digitalocean-ssh-key-fingerprint $DOFINGER --digitalocean-size s-1vcpu-1gb --digitalocean-image ubuntu-18-04-x64 droplet-name
+docker-machine create --driver digitalocean --digitalocean-access-token $DOTOKEN --digitalocean-ssh-key-fingerprint $DOFINGER --digitalocean-size s-1vcpu-1gb --digitalocean-image ubuntu-20-04-x64 --digitalocean-region lon1 droplet-name
 
-# when it's been provisioned
-# ssh into the machine
+# ssh into the machine when it's been provisioned
 docker-machine ssh droplet-name
 ```
 
-If you encounter an "Unable to query docker version: Cannot connect to the docker engine endpoint" error. Then you can try stopping and starting the machine again.
+If you encounter an "Unable to query docker version: Cannot connect to the docker engine endpoint" error. Then you can try stopping and starting the machine again and running the recommended steps to verify the docker env.
 ```
 # get the machine name and ip address
 docker-machine ls
@@ -136,45 +155,87 @@ docker-machine stop machine-name
 # start
 docker-machine start machine-name
 
-```
+# recommended steps to verify docker env
+docker-machine env machine-name 
+eval $(docker-machine env machine-name)
 
+```
 
 ## creating a new manager
+
+after gaining a shell on the host you want to become a manager
 ```
+# init a new swarm and deploy the stack from github repo
 docker swarm init --advertise-addr <ipaddress>
 cd home
 git clone https://github.com/JDIZM/nginx-reverse-proxy.git
 cd nginx-reverse-proxy
-docker stack deploy -c stack.loadbalance.yaml nrp
+docker stack deploy -c stack.yaml nrp
+
 # show the running stack services
 docker service ls
+docker stack services nrp
+
+# show the running tasks and their state
+docker stack ps nrp
 ```
+## Firewall ports
 
-make sure the firewall isn't blocking ports https://docs.docker.com/engine/swarm/swarm-tutorial/#open-protocols-and-ports-between-the-hosts
+Note: make sure the firewall isn't blocking any of the ports https://docs.docker.com/engine/swarm/swarm-tutorial/#open-protocols-and-ports-between-the-hosts
 
-## adding an node to the swarm
+- 2376 TCP
+- 2377 TCP
+- 7946 TCP/UDP
+- 4789 UDP
 
-get the join token from the manager.
+## adding a node to the swarm
+
+```
+# get the join token from the manager
 `docker swarm join-token worker`
 
-ssh into the machine you want to add and
-`docker swarm init`
+# ssh into the machine you want to add and use the join token
+docker-machine ssh machine-name
 
-then use the join token you received from the manager to add the node tot he swarm.
+# then use the join token you received from the manager to add the node to the swarm.
+docker swarm join --token <TOKEN> <MANAGER-IP>
 
+# check the tasks running on the stack
+docker stack ps stackname
+
+# filter tasks that are running
+docker stack ps stackname -f desired-state=running
+```
+
+The worker should join the node and services can be distributed across workers.
+
+To scale the service to more workers you can do the following.
+```
+# get the service name
+docker service ls
+
+# scale the service to 3 workers
+docker service scale service-name=3
+```
 - https://docs.docker.com/engine/swarm/swarm-tutorial/add-nodes/
+- https://docs.docker.com/engine/swarm/how-swarm-mode-works/services/
+- https://docs.docker.com/engine/swarm/ingress/#using-the-routing-mesh
+
 ## Resources
 
-- https://www.docker.com/blog/how-to-use-the-official-nginx-docker-image/
-- https://docs.docker.com/config/containers/logging/
 - http://nginx.org/en/docs/beginners_guide.html#proxy
 - https://docs.nginx.com/nginx/admin-guide/load-balancer/http-load-balancer/
-- https://www.digitalocean.com/community/tutorials/understanding-nginx-http-proxying-load-balancing-buffering-and-caching
 - https://docs.nginx.com/nginx/admin-guide/security-controls/securing-http-traffic-upstream/
+- https://www.digitalocean.com/community/tutorials/understanding-nginx-http-proxying-load-balancing-buffering-and-caching
 - https://medium.com/@simonestaffa/deploy-docker-containers-with-zero-downtime-ed06b0a0966d
-- https://docs.docker.com/engine/swarm/stack-deploy/
-- https://docs.docker.com/engine/swarm/swarm-tutorial/add-nodes/
+- https://www.docker.com/blog/how-to-use-the-official-nginx-docker-image/
+- https://docs.docker.com/docker-hub/repos/
+- https://docs.docker.com/config/containers/logging/
 - https://docs.docker.com/machine/
 - https://docs.docker.com/machine/drivers/digital-ocean/
-
+- https://docs.docker.com/engine/swarm/stack-deploy/
+- https://docs.docker.com/engine/swarm/swarm-tutorial/add-nodes/
+- https://docs.docker.com/engine/swarm/how-swarm-mode-works/services/
+- https://docs.docker.com/engine/swarm/ingress/#using-the-routing-mesh
+- https://docs.docker.com/engine/swarm/key-concepts/#load-balancing
 
