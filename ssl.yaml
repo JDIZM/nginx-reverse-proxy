@@ -12,13 +12,13 @@ services:
             - logs:/var/log/nginx
     # config for ssl
             - ./certbot/conf:/etc/nginx/ssl
-            - ./certbot/data:/var/www/certbot
+            - ./certbot/www:/var/www/certbot
     certbot:
         image: certbot/certbot:latest
         command: certonly --webroot --webroot-path=/var/www/certbot --email your-email@domain.com --agree-tos --no-eff-email -d domain.com -d www.domain.com
         volumes:
             - ./certbot/conf:/etc/letsencrypt
+            - ./certbot/www:/var/www/certbot
             - ./certbot/logs:/var/log/letsencrypt
-            - ./certbot/data:/var/www/certbot
 volumes:
     logs: {}
