@@ -193,6 +193,15 @@ docker-machine env machine-name
 eval $(docker-machine env machine-name)
 
 ```
+## connect to an existing docker machine
+
+```
+docker-machine create \
+    --driver generic \
+    --generic-ip-address=192.168.1.1 \
+    --generic-ssh-key ~/.ssh/id_rsa \
+    vm
+```
 
 ## creating a new manager
 
@@ -271,4 +280,4 @@ docker service scale service-name=3
 - https://docs.docker.com/engine/swarm/how-swarm-mode-works/services/
 - https://docs.docker.com/engine/swarm/ingress/#using-the-routing-mesh
 - https://docs.docker.com/engine/swarm/key-concepts/#load-balancing
-
+- https://stackoverflow.com/questions/34847966/docker-machine-connect-to-existing-machine
